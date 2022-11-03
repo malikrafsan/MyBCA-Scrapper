@@ -1,0 +1,32 @@
+{
+  "name": "klik-bca-scrapper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rm -rf dist && tsc",
+    "build-windows": "del /F /Q dist 2>nul && tsc",
+    "scrap": "node ./dist/scrap --unhandled-rejection=none",
+    "process": "node ./dist/process",
+    "puppeteer-install": "cd ./node_modules/puppeteer && npm run install && cd ../.."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/malikrafsan/KlikBCA-Scrapper.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/malikrafsan/KlikBCA-Scrapper/issues"
+  },
+  "homepage": "https://github.com/malikrafsan/KlikBCA-Scrapper#readme",
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "puppeteer": "^14.4.1"
+  }
+}

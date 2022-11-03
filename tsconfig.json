@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "outDir": "./dist",
+    "target": "es6",
+    "module": "commonjs",
+    "noEmitOnError": true,
+    "declaration": true,
+    "allowJs": false
+  },
+  "include": ["./src/**/*"]
+}
