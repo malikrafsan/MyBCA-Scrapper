@@ -1,3 +1,3 @@
-import KlikBcaBankScrapper from "./KlikBcaBankScraper";
+import MyBcaBankScrapper from "./MyBcaBankScraper";
 
-export { KlikBcaBankScrapper };
+export { MyBcaBankScrapper };
