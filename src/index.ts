@@ -17,9 +17,7 @@ const main = async () => {
     await myBcaBankScrapper.initBrowser();
     await myBcaBankScrapper.login();
     const saldo = await myBcaBankScrapper.getCurrentBalance();
-    logger.log(`Saldo: ${saldo}`);
     const transactions = await myBcaBankScrapper.getTransactions(startDate, endDate);
-    logger.log(`Transactions: ${JSON.stringify(transactions)}`);
     await myBcaBankScrapper.logout();
     await myBcaBankScrapper.close();
 

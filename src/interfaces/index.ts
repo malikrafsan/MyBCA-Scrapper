@@ -1,3 +1,4 @@
 import BankTransaction from "./BankTransaction";
+import IBrowser from "./IBrowser";
 
-export { BankTransaction };
+export { BankTransaction, IBrowser };

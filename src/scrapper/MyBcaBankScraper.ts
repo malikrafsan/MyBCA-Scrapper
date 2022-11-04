@@ -1,4 +1,4 @@
-import { BankTransaction } from "../interfaces";
+import { BankTransaction, IBrowser } from "../interfaces";
 import { BaseBankScraper } from "../bases";
 import * as puppeteer from "puppeteer";
 import {
@@ -9,15 +9,13 @@ import {
 } from "puppeteer";
 import * as crypto from "crypto";
 import { helper } from "../utils";
+import { PuppeteerWrapper } from "../browser";
 
 class MyBcaBankScrapper extends BaseBankScraper {
   private userId: string;
   private pass: string;
-  private browser: puppeteer.Browser;
-  private page: puppeteer.Page;
+  private browser: IBrowser;
   private hasLoggedIn: boolean;
-
-  private defaultWaitForOptions: puppeteer.WaitForOptions;
 
   private readonly BANK_CODE = "BCA";
 
@@ -57,14 +55,10 @@ class MyBcaBankScrapper extends BaseBankScraper {
     this.userId = userId;
     this.pass = pass;
     this.hasLoggedIn = false;
-    this.defaultWaitForOptions = {
-      waitUntil: "domcontentloaded",
-      timeout: 0,
-    };
   }
 
-  setDefaultWaitForOptions(options: puppeteer.WaitForOptions) {
-    this.defaultWaitForOptions = options;
+  setDefaultWaitForOptions(options) {
+    this.browser.setDefaultWaitForOptions(options);
   }
 
   async initBrowser(
@@ -79,28 +73,33 @@ class MyBcaBankScrapper extends BaseBankScraper {
       userDataDir: "./tmp",
     }
   ) {
-    this.browser = await puppeteer.launch(options);
-    this.page = await this.browser.newPage();
+    this.browser = new PuppeteerWrapper();
+    await this.browser.init(options);
+    this.browser.setDefaultWaitForOptions({
+      waitUntil: "domcontentloaded",
+      timeout: 0,
+    });
   }
 
   async login(): Promise<void> {
-    if (!this.browser || !this.page) {
+    if (!this.browser) {
       await this.initBrowser();
     }
 
-    await this.page.goto(this.loginUrl, this.defaultWaitForOptions);
+    await this.browser.goto(this.loginUrl);
     await Promise.all([
-      await this.page.waitForSelector(this.inputUnameSelector),
-      await this.page.waitForSelector(this.inputPassSelector),
-      await this.page.waitForSelector(this.submitBtnSelector),
-    ]);
+      await this.browser.waitComponent(this.inputUnameSelector),
+      await this.browser.waitComponent(this.inputPassSelector),
+      await this.browser.waitComponent(this.submitBtnSelector),
+    ])
 
     await Promise.all([
-      await this.page.type(this.inputUnameSelector, this.userId),
-      await this.page.type(this.inputPassSelector, this.pass),
-    ]);
-    await this.page.click(this.submitBtnSelector);
-    await this.page.waitForNavigation(this.defaultWaitForOptions);
+      await this.browser.type(this.inputUnameSelector, this.userId),
+      await this.browser.type(this.inputPassSelector, this.pass),
+    ])
+
+    await this.browser.click(this.submitBtnSelector);
+    await this.browser.waitNavigate();
 
     this.hasLoggedIn = true;
   }
@@ -109,22 +108,22 @@ class MyBcaBankScrapper extends BaseBankScraper {
       await this.login();
     }
 
-    await this.page.goto(this.dashboardUrl, this.defaultWaitForOptions);
+    await this.browser.goto(this.dashboardUrl);
 
-    await this.page.waitForSelector(
+    await this.browser.waitComponent(
       this.balanceCardSelector + " " + this.innerUnlockSaldoSelector
     );
-    await this.page.$eval(
+    await this.browser.manipulate(
       this.balanceCardSelector + " " + this.innerUnlockSaldoSelector,
       (el: HTMLElement) => {
         el.click();
       }
     );
 
-    await this.page.waitForSelector(
+    await this.browser.waitComponent(
       this.balanceCardSelector + " " + this.innerSelectorSaldo
     );
-    const saldo = await this.page.$eval(
+    const saldo = await this.browser.manipulate(
       this.balanceCardSelector + " " + this.innerSelectorSaldo,
       (el: HTMLElement) => {
         return parseInt(el.innerText.trim().replace(/[^0-9]/g, ""));
@@ -141,19 +140,19 @@ class MyBcaBankScrapper extends BaseBankScraper {
       await this.login();
     }
 
-    await this.page.goto(this.transactionUrl, this.defaultWaitForOptions);
+    await this.browser.goto(this.transactionUrl);
 
     if (startAt && endAt) {
-      await this.page.waitForSelector(this.durationInput);
-      await this.page.$eval(this.durationInput, (el: HTMLElement) => {
+      await this.browser.waitComponent(this.durationInput);
+      await this.browser.manipulate(this.durationInput, (el: HTMLElement) => {
         el.click();
       });
 
       await this.chooseDate(startAt, true);
       await this.chooseDate(endAt, false);
 
-      await this.page.waitForSelector(this.submitTransactionBtnSelector);
-      await this.page.$$eval(
+      await this.browser.waitComponent(this.submitTransactionBtnSelector);
+      await this.browser.manipulateAll(
         this.submitTransactionBtnSelector,
         (els: HTMLElement[]) => {
           els.forEach((el) => {
@@ -163,8 +162,8 @@ class MyBcaBankScrapper extends BaseBankScraper {
       );
     }
 
-    await this.page.waitForSelector(this.transactionTableSelector);
-    const transactions = await this.page.$eval(
+    await this.browser.waitComponent(this.transactionTableSelector);
+    const transactions = await this.browser.manipulate(
       this.transactionTableSelector,
       (el) => {
         const tbody = el.querySelector("tbody");
@@ -191,8 +190,8 @@ class MyBcaBankScrapper extends BaseBankScraper {
       }
     );
 
-    await this.page.waitForSelector(this.accNumSelector);
-    const accNum = await this.page.$eval(
+    await this.browser.waitComponent(this.accNumSelector);
+    const accNum = await this.browser.manipulate(
       this.accNumSelector,
       (el: HTMLElement) => {
         return el.innerText.trim();
@@ -224,9 +223,9 @@ class MyBcaBankScrapper extends BaseBankScraper {
       return;
     }
 
-    await this.page.goto(this.logoutUrl, this.defaultWaitForOptions);
-    await this.page.waitForSelector(this.btnLogoutSelector);
-    await this.page.$eval(this.btnLogoutSelector, (a: HTMLElement) => {
+    await this.browser.goto(this.logoutUrl);
+    await this.browser.waitComponent(this.btnLogoutSelector);
+    await this.browser.manipulate(this.btnLogoutSelector, (a: HTMLElement) => {
       a.click();
     });
   }
@@ -238,19 +237,19 @@ class MyBcaBankScrapper extends BaseBankScraper {
   }
 
   private async chooseDate(date: Date, isStart: boolean) {
-    await this.page.waitForSelector(this.dateRangeSelector);
-    await this.page.waitForSelector(
+    await this.browser.waitComponent(this.dateRangeSelector);
+    await this.browser.waitComponent(
       this.dateRangeSelector + " " + this.innerYearSelector
     );
-    await this.page.$eval(
+    await this.browser.manipulate(
       this.dateRangeSelector + " " + this.innerYearSelector,
       (el: HTMLElement) => {
         el.click();
       }
     );
 
-    await this.page.waitForSelector(this.curYearOptionBtnSelector);
-    const curYearOption = await this.page.$eval(
+    await this.browser.waitComponent(this.curYearOptionBtnSelector);
+    const curYearOption = await this.browser.manipulate(
       this.curYearOptionBtnSelector,
       (el: HTMLElement) => {
         return el.innerText;
@@ -270,11 +269,11 @@ class MyBcaBankScrapper extends BaseBankScraper {
         break;
       }
 
-      await this.page.waitForSelector(
+      await this.browser.waitComponent(
         this.btnNavSelector +
           (isStart ? "previous" : "next")
       );
-      const btnNav = await this.page.$eval(
+      const btnNav = await this.browser.manipulate(
         this.btnNavSelector + (isStart ? "previous" : "next"),
         (el: HTMLElement) => {
           if (el.getAttribute("disabled") === null) {
@@ -290,10 +289,10 @@ class MyBcaBankScrapper extends BaseBankScraper {
         throw new Error("Cannot find previous year button");
       }
 
-      await this.page.waitForSelector(
+      await this.browser.waitComponent(
         this.curYearOptionBtnSelector
       );
-      const curYearOptionInner = await this.page.$eval(
+      const curYearOptionInner = await this.browser.manipulate(
         this.curYearOptionBtnSelector,
         (el: HTMLElement) => {
           return el.innerText;
@@ -304,8 +303,8 @@ class MyBcaBankScrapper extends BaseBankScraper {
     }
 
     const curDateYear = curDate.year;
-    await this.page.waitForSelector(this.tableYearSelector);
-    await this.page.$eval(
+    await this.browser.waitComponent(this.tableYearSelector);
+    await this.browser.manipulate(
       this.tableYearSelector,
       (el: HTMLElement, curDateYear) => {
         const trs = Array.from(el.querySelectorAll("tbody tr"));
@@ -323,8 +322,8 @@ class MyBcaBankScrapper extends BaseBankScraper {
       curDateYear
     );
 
-    await this.page.waitForSelector(this.tableMonthSelector);
-    await this.page.$eval(
+    await this.browser.waitComponent(this.tableMonthSelector);
+    await this.browser.manipulate(
       this.tableMonthSelector,
       (el: HTMLElement, monthName: string) => {
         const trs = Array.from(el.querySelectorAll("tbody tr"));
@@ -348,8 +347,8 @@ class MyBcaBankScrapper extends BaseBankScraper {
       curDate.monthName
     );
 
-    await this.page.waitForSelector(this.tableDaySelector);
-    await this.page.$eval(
+    await this.browser.waitComponent(this.tableDaySelector);
+    await this.browser.manipulate(
       this.tableDaySelector,
       (el: HTMLElement, day: number) => {
         const trs = Array.from(el.querySelectorAll("tbody tr"));
