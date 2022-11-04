@@ -1,12 +1,5 @@
 import { BankTransaction, IBrowser } from "../interfaces";
 import { BaseBankScraper } from "../bases";
-import * as puppeteer from "puppeteer";
-import {
-  LaunchOptions,
-  BrowserLaunchArgumentOptions,
-  BrowserConnectOptions,
-  Product,
-} from "puppeteer";
 import * as crypto from "crypto";
 import { helper } from "../utils";
 import { PuppeteerWrapper } from "../browser";
@@ -61,20 +54,17 @@ class MyBcaBankScrapper extends BaseBankScraper {
     this.browser.setDefaultWaitForOptions(options);
   }
 
-  async initBrowser(
-    options: LaunchOptions &
-      BrowserLaunchArgumentOptions &
-      BrowserConnectOptions & {
-        product?: Product;
-        extraPrefsFirefox?: Record<string, unknown>;
-      } = {
-      headless: false,
+  async initBrowser(options?) {
+    const defaultOptions = {
+      headless: true,
       defaultViewport: null,
       userDataDir: "./tmp",
-    }
-  ) {
+    };
     this.browser = new PuppeteerWrapper();
-    await this.browser.init(options);
+    await this.browser.init({
+      ...defaultOptions,
+      ...options,
+    });
     this.browser.setDefaultWaitForOptions({
       waitUntil: "domcontentloaded",
       timeout: 0,
@@ -91,12 +81,12 @@ class MyBcaBankScrapper extends BaseBankScraper {
       await this.browser.waitComponent(this.inputUnameSelector),
       await this.browser.waitComponent(this.inputPassSelector),
       await this.browser.waitComponent(this.submitBtnSelector),
-    ])
+    ]);
 
     await Promise.all([
       await this.browser.type(this.inputUnameSelector, this.userId),
       await this.browser.type(this.inputPassSelector, this.pass),
-    ])
+    ]);
 
     await this.browser.click(this.submitBtnSelector);
     await this.browser.waitNavigate();
@@ -270,8 +260,7 @@ class MyBcaBankScrapper extends BaseBankScraper {
       }
 
       await this.browser.waitComponent(
-        this.btnNavSelector +
-          (isStart ? "previous" : "next")
+        this.btnNavSelector + (isStart ? "previous" : "next")
       );
       const btnNav = await this.browser.manipulate(
         this.btnNavSelector + (isStart ? "previous" : "next"),
@@ -289,9 +278,7 @@ class MyBcaBankScrapper extends BaseBankScraper {
         throw new Error("Cannot find previous year button");
       }
 
-      await this.browser.waitComponent(
-        this.curYearOptionBtnSelector
-      );
+      await this.browser.waitComponent(this.curYearOptionBtnSelector);
       const curYearOptionInner = await this.browser.manipulate(
         this.curYearOptionBtnSelector,
         (el: HTMLElement) => {

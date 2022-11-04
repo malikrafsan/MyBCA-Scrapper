@@ -20,7 +20,7 @@ class PuppeteerWrapper implements IBrowser {
         product?: puppeteer.Product;
         extraPrefsFirefox?: Record<string, unknown>;
       } = {
-      headless: false,
+      headless: true,
       defaultViewport: null,
       userDataDir: "./tmp",
     }
